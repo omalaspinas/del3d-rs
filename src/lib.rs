@@ -77,7 +77,8 @@ impl TriBuilder {
     }
 }
 
-struct Tri {
+#[derive(Debug, Clone)]
+pub struct Tri {
     id: isize,
     keep: isize,
     a: isize,
@@ -387,14 +388,14 @@ fn add_coplanar(pts: &Vec<R3>, hull: &mut Vec<Tri>, id: isize) {
 }
 
 // takes a **sorted** vec of points and returns a Result of vec of triangles
-fn newton_apple_delauney(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
+pub fn newton_apple_delauney(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
     let nump = pts.len();
 
     if nump <= 4 {
         return Err("less than 4 points, aborting,");
     }
 
-    let hull = init_hull3D_compact(pts, hull);
+    let hull = init_hull3d_compact(pts);
     let hull = hull.unwrap();
     //int num = init_hull3D(pts, hull);
 
@@ -420,7 +421,7 @@ fn newton_apple_delauney(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
         // create an index from old tri-id to new tri-id.
         if hull[t].keep > 0 {
             // point index remains unchanged.
-            let mut tri = hull[t];
+            let mut tri = hull[t].clone();
             tri.id = taken[t];
             if taken[tri.ab as usize] < 0 {
                 return Err("broken hull");
@@ -447,46 +448,57 @@ fn newton_apple_delauney(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
     Ok(hulk)
 }
 
-fn init_hull3D_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str>
-{
+fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
     let nump = pts.len();
     let mut norts = Vec::new();
     let mut hull = Vec::with_capacity(nump * 2);
 
     // keep track of covered (dead) triangles.
     let mut dlist = vec![-1isize; 64];
-    let numd = 64;  // number of dead triangle slots.
-    let d_idx: isize = -1; // index to next dead triangle slot to be retuned to use.
+    let mut numd = 64; // number of dead triangle slots.
+    let mut d_idx: isize = -1; // index to next dead triangle slot to be retuned to use.
 
     // keep track of last triangles added.
     let mut tlast = vec![-1isize; 64];
     let numl = 64; // number  slots.
-    let l_idx = -1isize;
-
-    let t1 = TriBuilder::new(0, 1, 2).finalize();
+    let mut l_idx = -1isize;
 
     let p0 = pts[0];
     let p1 = pts[1];
     let p2 = pts[2];
 
-    let large_m = p0.v + p1.v + p1.v;
+    let mut large_m = p0.v + p1.v + p1.v;
 
     // check for colinearity
     let p01 = p1.v - p0.v;
     let p02 = p2.v - p0.v;
 
     let e = p01.cross(p02);
-    if e == Vec3d::new(0.0, 0.0, 0.0) { // do not add a facet.
+    if e == Vec3d::new(0.0, 0.0, 0.0) {
+        // do not add a facet.
         return Err("stop fucking me arround and give me a valid opening facet, you tit. ");
     }
 
-    let t1 = TriBuilder::new(0, 1, 2).set_id(0).set_e(e).set_ab(1).set_ac(1).set_bc(1).finalize();
+    let t1 = TriBuilder::new(0, 1, 2)
+        .set_id(0)
+        .set_e(e)
+        .set_ab(1)
+        .set_ac(1)
+        .set_bc(1)
+        .finalize();
     hull.push(t1);
 
-    let t1 = TriBuilder::new(0, 1, 2).set_id(1).set_e(-e).set_ab(0).set_ac(0).set_bc(0).finalize();
+    let t1 = TriBuilder::new(0, 1, 2)
+        .set_id(1)
+        .set_e(-e)
+        .set_ab(0)
+        .set_ac(0)
+        .set_bc(0)
+        .finalize();
     hull.push(t1);
 
-    for p in 3..nump { // add points until a non coplanar set of points is achieved.
+    for p in 3..nump {
+        // add points until a non coplanar set of points is achieved.
         let pt = pts[p];
 
         large_m += pt.v;
@@ -501,7 +513,7 @@ fn init_hull3D_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str>
         if l_idx >= 0 {
             for l in (0..=l_idx).rev() {
                 let h = tlast[l as usize];
-                let t = hull[h as usize];
+                let t = hull[h as usize].clone();
 
                 let p_tmp = pts[t.a as usize];
 
@@ -519,8 +531,8 @@ fn init_hull3D_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str>
         }
 
         if hvis <= 0 {
-            for h in (0..=(numh-1)).rev() {
-                let t = hull[h];
+            for h in (0..=(numh - 1)).rev() {
+                let t = hull[h].clone();
                 let p_tmp = pts[t.a as usize];
                 let d = pt.v - p_tmp.v;
 
@@ -543,12 +555,11 @@ fn init_hull3D_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str>
             l_idx = -1;
 
             // new triangular facets are formed from neighbouring invisible planes.
-            let numh = hull.len();
-            let numx = xlist.len();
+            let mut numx = xlist.len();
             for x in 0..numx {
                 let xid = xlist[x];
                 let ab = hull[xid as usize].ab; // facet adjacent to line ab
-                let tab = hull[ab as usize];
+                let mut tab = hull[ab as usize].clone();
 
                 let p_tmp = pts[tab.a as usize]; // point on next triangle
 
@@ -556,14 +567,21 @@ fn init_hull3D_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str>
 
                 let norm = d.dot(tab.e);
 
-                if norm > 0.0 { // add to xlist.
+                if norm > 0.0 {
+                    // add to xlist.
                     if hull[ab as usize].keep == 1 {
                         hull[ab as usize].keep = 0;
                         xlist.push(ab);
                         numx += 1;
                     }
-                } else { // spawn a new triangle.
-                    let tri_new = TriBuilder::new(p as isize, hull[xid as usize].a, hull[xid as usize].b).set_keep(2).set_ab(-1).set_ac(-1).set_bc(ab);
+                } else {
+                    // spawn a new triangle.
+                    let mut tri_new =
+                        TriBuilder::new(p as isize, hull[xid as usize].a, hull[xid as usize].b)
+                            .set_keep(2)
+                            .set_ab(-1)
+                            .set_ac(-1)
+                            .set_bc(ab);
 
                     let d1 = pts[tri_new.a as usize].v - pts[tri_new.b as usize].v;
                     let d2 = pts[tri_new.a as usize].v - pts[tri_new.c as usize].v;
@@ -572,14 +590,13 @@ fn init_hull3D_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str>
                     let e = d1.cross(d2);
 
                     let d = small_m - pt.v; // points from new facet towards [mr,mc,mz]
-                    // make it point outwards.
+                                            // make it point outwards.
 
                     let dromadery = d.dot(e);
 
                     tri_new = if dromadery > 0.0 {
                         tri_new.set_e(-e)
-                    }
-                    else {
+                    } else {
                         tri_new.set_e(e)
                     };
 
@@ -598,395 +615,274 @@ fn init_hull3D_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str>
                     // update the touching triangle tab
                     let cap_a = hull[xid as usize].a;
                     let cap_b = hull[xid as usize].b;
-                    if (tab.a == cap_a && tab.b == cap_b) || (tab.a == cap_b && tab.b == cap_a)
-                    {
+                    if (tab.a == cap_a && tab.b == cap_b) || (tab.a == cap_b && tab.b == cap_a) {
                         tab.ab = h_idx;
-                    }
-                    else if (tab.a == cap_a && tab.c == cap_b) || (tab.a == cap_b && tab.c == cap_a)
+                    } else if (tab.a == cap_a && tab.c == cap_b)
+                        || (tab.a == cap_b && tab.c == cap_a)
                     {
                         tab.ac = h_idx;
-                    }
-                    else if (tab.b == cap_a && tab.c == cap_b) || (tab.b == cap_b && tab.c == cap_a)
+                    } else if (tab.b == cap_a && tab.c == cap_b)
+                        || (tab.b == cap_b && tab.c == cap_a)
                     {
                         tab.bc = h_idx;
-                    }
-                    else
-                    {
+                    } else {
                         return Err("Oh crap, the di-lithium crystals are fucked!");
                     }
 
                     l_idx += 1;
-                    if l_idx < numl
-                    {
+                    if l_idx < numl {
                         tlast[l_idx as usize] = h_idx;
-                    }
-                    else
-                    {
+                    } else {
                         tlast.push(h_idx);
                     }
 
-                    if new_flag > 0
-                    {
+                    if new_flag > 0 {
                         hull.push(tri_new.finalize());
-                    }
-                    else
-                    {
+                    } else {
                         hull[h_idx as usize] = tri_new.finalize();
                     }
                 }
 
                 // second side of the struck out triangle
 
-                int ac = hull[xid].ac; // facet adjacent to line ac
-                Tri &tAC = hull[ac];
+                let ac = hull[xid as usize].ac; // facet adjacent to line ac
+                let mut tac = hull[ac as usize].clone();
 
-                R1 = pts[tAC.a].r; // point on next triangle
-                C1 = pts[tAC.a].c;
-                Z1 = pts[tAC.a].z;
+                let p_tmp = pts[tac.a as usize]; // point on next triangle
 
-                dr = r - R1;
-                dc = c - C1;
-                dz = z - Z1;
+                let d = pt.v - p_tmp.v;
 
-                d = dr * tAC.er + dc * tAC.ec + dz * tAC.ez;
+                let norm = d.dot(tac.e);
 
-                if (d > 0)
-                { // add to xlist.
-                    if (hull[ac].keep == 1)
-                    {
-                        hull[ac].keep = 0;
-                        xlist.push_back(ac);
-                        numx++;
+                if norm > 0.0 {
+                    // add to xlist.
+                    if hull[ac as usize].keep == 1 {
+                        hull[ac as usize].keep = 0;
+                        xlist.push(ac);
+                        numx += 1;
                     }
-                }
-                else
-                { // spawn a new triangle.
-                    //tri_new.id = (int) hull.size();
-                    tri_new.keep = 2;
-                    tri_new.a = p;
-                    tri_new.b = hull[xid].a;
-                    tri_new.c = hull[xid].c;
-
-                    tri_new.ab = -1;
-                    tri_new.ac = -1;
-                    tri_new.bc = ac;
+                } else {
+                    // spawn a new triangle.
+                    let mut tri_new =
+                        TriBuilder::new(p as isize, hull[xid as usize].a, hull[xid as usize].c)
+                            .set_keep(2)
+                            .set_ab(-1)
+                            .set_ac(-1)
+                            .set_bc(ac);
 
                     // make normal vector.
-                    float dr1 = pts[tri_new.a].r - pts[tri_new.b].r, dr2 = pts[tri_new.a].r - pts[tri_new.c].r;
-                    float dc1 = pts[tri_new.a].c - pts[tri_new.b].c, dc2 = pts[tri_new.a].c - pts[tri_new.c].c;
-                    float dz1 = pts[tri_new.a].z - pts[tri_new.b].z, dz2 = pts[tri_new.a].z - pts[tri_new.c].z;
+                    let d1 = pts[tri_new.a as usize].v - pts[tri_new.b as usize].v;
+                    let d2 = pts[tri_new.a as usize].v - pts[tri_new.c as usize].v;
+                    let e = d1.cross(d2);
 
-                    float er = (dc1 * dz2 - dc2 * dz1);
-                    float ec = -(dr1 * dz2 - dr2 * dz1);
-                    float ez = (dr1 * dc2 - dr2 * dc1);
+                    let d = small_m - pt.v; // points from new facet towards [mr,mc,mz]
+                                            // make it point outwards.
 
-                    let d = small_m - pt; // points from new facet towards [mr,mc,mz]
-                    // make it point outwards.
+                    let dromadery = d.dot(e);
 
-                    float dromadery = dr * er + dc * ec + dz * ez;
-
-                    if (dromadery > 0)
-                    {
-                        tri_new.er = -er;
-                        tri_new.ec = -ec;
-                        tri_new.ez = -ez;
-                    }
-                    else
-                    {
-                        tri_new.er = er;
-                        tri_new.ec = ec;
-                        tri_new.ez = ez;
-                    }
+                    tri_new = tri_new.set_e(if dromadery > 0.0 { -e } else { e });
 
                     // try to reuse a Dead triangle.
-                    int new_flag = 1, h_idx = (int)hull.size();
-
-                    if (d_idx >= 0)
-                    {
-                        h_idx = dlist[d_idx];
-                        d_idx--;
+                    let mut new_flag = 1;
+                    let mut h_idx = hull.len() as isize;
+                    if d_idx >= 0 {
+                        h_idx = dlist[d_idx as usize];
+                        d_idx -= 1;
                         new_flag = -1;
                     }
 
-                    tri_new.id = h_idx;
+                    tri_new = tri_new.set_id(h_idx);
 
-                    // update the touching triangle tAC
-                    int cap_a = hull[xid].a, C = hull[xid].c;
-                    if ((tAC.a == cap_a && tAC.b == C) || (tAC.a == C && tAC.b == cap_a))
+                    // update the touching triangle tac
+                    let cap_a = hull[xid as usize].a;
+                    let cap_c = hull[xid as usize].c;
+                    if (tac.a == cap_a && tac.b == cap_c) || (tac.a == cap_c && tac.b == cap_a) {
+                        tac.ab = h_idx;
+                    } else if (tac.a == cap_a && tac.c == cap_c)
+                        || (tac.a == cap_c && tac.c == cap_a)
                     {
-                        tAC.ab = h_idx;
-                    }
-                    else if ((tAC.a == cap_a && tAC.c == C) || (tAC.a == C && tAC.c == cap_a))
+                        tac.ac = h_idx;
+                    } else if (tac.b == cap_a && tac.c == cap_c)
+                        || (tac.b == cap_c && tac.c == cap_a)
                     {
-                        tAC.ac = h_idx;
-                    }
-                    else if ((tAC.b == cap_a && tAC.c == C) || (tAC.b == C && tAC.c == cap_a))
-                    {
-                        tAC.bc = h_idx;
-                    }
-                    else
-                    {
-                        cerr << "Oh crap, warp drive failure, dude!" << endl;
-                        return (-1);
+                        tac.bc = h_idx;
+                    } else {
+                        return Err("Oh crap, warp drive failure, dude!");
                     }
 
-                    l_idx++;
-                    if (l_idx < numl)
-                    {
-                        tlast[l_idx] = h_idx;
-                    }
-                    else
-                    {
-                        tlast.push_back(h_idx);
+                    l_idx += 1;
+                    if l_idx < numl {
+                        tlast[l_idx as usize] = h_idx;
+                    } else {
+                        tlast.push(h_idx);
                     }
 
-                    if (new_flag > 0)
-                    {
-                        hull.push_back(tri_new);
+                    if new_flag > 0 {
+                        hull.push(tri_new.finalize());
+                    } else {
+                        hull[h_idx as usize] = tri_new.finalize();
                     }
-                    else
-                    {
-                        hull[h_idx] = tri_new;
-                    }
-
-                    //hull.push_back(tri_new);
                 }
 
                 // third side of the struck out triangle
 
-                int bc = hull[xid].bc; // facet adjacent to line ac
-                Tri &tBC = hull[bc];
+                let bc = hull[xid as usize].bc; // facet adjacent to line ac
+                let mut tbc = hull[bc as usize].clone();
 
-                R1 = pts[tBC.a].r; // point on next triangle
-                C1 = pts[tBC.a].c;
-                Z1 = pts[tBC.a].z;
+                let p_tmp = pts[tbc.a as usize]; // point on next triangle
 
-                dr = r - R1;
-                dc = c - C1;
-                dz = z - Z1;
+                let d = pt.v - p_tmp.v;
 
-                d = dr * tBC.er + dc * tBC.ec + dz * tBC.ez;
-
-                if (d > 0)
-                { // add to xlist.
-                    if (hull[bc].keep == 1)
-                    {
-                        hull[bc].keep = 0;
-                        xlist.push_back(bc);
-                        numx++;
+                let norm = d.dot(tbc.e);
+                if norm > 0.0 {
+                    // add to xlist.
+                    if hull[bc as usize].keep == 1 {
+                        hull[bc as usize].keep = 0;
+                        xlist.push(bc);
+                        numx += 1;
                     }
-                }
-                else
-                { // spawn a new triangle.
-                    // tri_new.id = (int) hull.size();
-                    tri_new.keep = 2;
-                    tri_new.a = p;
-                    tri_new.b = hull[xid].b;
-                    tri_new.c = hull[xid].c;
-
-                    tri_new.ab = -1;
-                    tri_new.ac = -1;
-                    tri_new.bc = bc;
+                } else {
+                    // spawn a new triangle.
+                    let mut tri_new =
+                        TriBuilder::new(p as isize, hull[xid as usize].b, hull[xid as usize].c)
+                            .set_keep(2)
+                            .set_ab(-1)
+                            .set_ac(-1)
+                            .set_bc(bc);
 
                     // make normal vector.
-                    float dr1 = pts[tri_new.a].r - pts[tri_new.b].r, dr2 = pts[tri_new.a].r - pts[tri_new.c].r;
-                    float dc1 = pts[tri_new.a].c - pts[tri_new.b].c, dc2 = pts[tri_new.a].c - pts[tri_new.c].c;
-                    float dz1 = pts[tri_new.a].z - pts[tri_new.b].z, dz2 = pts[tri_new.a].z - pts[tri_new.c].z;
+                    let d1 = pts[tri_new.a as usize].v - pts[tri_new.b as usize].v;
+                    let d2 = pts[tri_new.a as usize].v - pts[tri_new.c as usize].v;
 
-                    float er = (dc1 * dz2 - dc2 * dz1);
-                    float ec = -(dr1 * dz2 - dr2 * dz1);
-                    float ez = (dr1 * dc2 - dr2 * dc1);
+                    let e = d1.cross(d2);
 
-                    let d = small_m - pt; // points from new facet towards [mr,mc,mz]
-                    // make it point outwards.
+                    let d = small_m - pt.v; // points from new facet towards [mr,mc,mz]
+                                            // make it point outwards.
 
-                    float dromadery = dr * er + dc * ec + dz * ez;
+                    let dromadery = d.dot(e);
 
-                    if (dromadery > 0)
-                    {
-                        tri_new.er = -er;
-                        tri_new.ec = -ec;
-                        tri_new.ez = -ez;
-                    }
-                    else
-                    {
-                        tri_new.er = er;
-                        tri_new.ec = ec;
-                        tri_new.ez = ez;
-                    }
+                    tri_new = if dromadery > 0.0 {
+                        tri_new.set_e(-e)
+                    } else {
+                        tri_new.set_e(e)
+                    };
 
                     // try to reuse a Dead triangle.
-                    int new_flag = 1, h_idx = (int)hull.size();
+                    let mut new_flag = 1;
+                    let mut h_idx = hull.len() as isize;
 
-                    if (d_idx >= 0)
-                    {
-                        h_idx = dlist[d_idx];
-                        d_idx--;
+                    if d_idx >= 0 {
+                        h_idx = dlist[d_idx as usize];
+                        d_idx -= 1;
                         new_flag = -1;
                     }
 
                     tri_new.id = h_idx;
 
-                    // update the touching triangle tBC
-                    int cap_b = hull[xid].b, C = hull[xid].c;
-                    if ((tBC.a == cap_b && tBC.b == C) || (tBC.a == C && tBC.b == cap_b))
+                    // update the touching triangle tbc
+                    let cap_b = hull[xid as usize].b;
+                    let cap_c = hull[xid as usize].c;
+                    if (tbc.a == cap_b && tbc.b == cap_c) || (tbc.a == cap_c && tbc.b == cap_b) {
+                        tbc.ab = h_idx;
+                    } else if (tbc.a == cap_b && tbc.c == cap_c)
+                        || (tbc.a == cap_c && tbc.c == cap_b)
                     {
-                        tBC.ab = h_idx;
-                    }
-                    else if ((tBC.a == cap_b && tBC.c == C) || (tBC.a == C && tBC.c == cap_b))
+                        tbc.ac = h_idx;
+                    } else if (tbc.b == cap_b && tbc.c == cap_c)
+                        || (tbc.b == cap_c && tbc.c == cap_b)
                     {
-                        tBC.ac = h_idx;
-                    }
-                    else if ((tBC.b == cap_b && tBC.c == C) || (tBC.b == C && tBC.c == cap_b))
-                    {
-                        tBC.bc = h_idx;
-                    }
-                    else
-                    {
-                        cerr << "Oh crap, rocket engine failure" << endl;
-                        return (-1);
+                        tbc.bc = h_idx;
+                    } else {
+                        return Err("Oh crap, rocket engine failure");
                     }
 
-                    l_idx++;
-                    if (l_idx < numl)
-                    {
-                        tlast[l_idx] = h_idx;
-                    }
-                    else
-                    {
-                        tlast.push_back(h_idx);
+                    l_idx += 1;
+                    if l_idx < numl {
+                        tlast[l_idx as usize] = h_idx;
+                    } else {
+                        tlast.push(h_idx);
                     }
 
-                    if (new_flag > 0)
-                    {
-                        hull.push_back(tri_new);
-                    }
-                    else
-                    {
-                        hull[h_idx] = tri_new;
+                    if new_flag > 0 {
+                        hull.push(tri_new.finalize());
+                    } else {
+                        hull[h_idx as usize] = tri_new.finalize();
                     } // hull.push_back(tri_new);
                 }
             }
 
-            numx = xlist.size();
-            for (int x = 0; x < numx; x++)
-            {
+            let numx = xlist.len();
+            for x in 0..numx {
                 // cerr << xlist[x] << " ";
 
-                d_idx++; // keep track of all dead triangles.
-                if (d_idx < numd)
-                {
-                    dlist[d_idx] = xlist[x];
-                }
-                else
-                {
-                    dlist.push_back(xlist[x]);
-                    numd++;
+                d_idx += 1; // keep track of all dead triangles.
+                if d_idx < numd {
+                    dlist[d_idx as usize] = xlist[x];
+                } else {
+                    dlist.push(xlist[x]);
+                    numd += 1;
                 }
             }
-            numx = 0;
 
             // patch up the new triangles in hull.
 
-            int numN = (int)hull.size();
-            //std::vector<Snork> norts;
-            int numS = (int)norts.size();
-            int nums = 0;
-            Snork snort;
-            //for( int q = numN-1; q>= numh; q--){
+            let mut num_cap_s = norts.len();
+            let mut num_small_s = 0;
 
-            for (int L = l_idx; L >= 0; L--)
-            {
-                int q = tlast[L];
+            for l in (0..=l_idx).rev() {
+                let q = tlast[l as usize];
 
-                if (hull[q].keep > 1)
-                {
-                    if (nums < numS)
-                    {
-                        norts[nums].id = q;
-                        norts[nums].a = hull[q].b;
-                        norts[nums].b = 1;
-
-                        nums++;
-                    }
-                    else
-                    {
-                        snort.id = q;
-                        snort.a = hull[q].b;
-                        snort.b = 1;
-
-                        norts.push_back(snort);
-                        nums++;
-                        numS = (int)norts.size();
+                if hull[q as usize].keep > 1 {
+                    if num_small_s < num_cap_s {
+                        norts[num_small_s] = Snork::new(q, hull[q as usize].b, 1);
+                        num_small_s += 1;
+                    } else {
+                        norts.push(Snork::new(q, hull[q as usize].b, 1));
+                        num_small_s += 1;
+                        num_cap_s = norts.len();
                     }
 
-                    if (nums < numS)
-                    {
-                        norts[nums].id = q;
-                        norts[nums].a = hull[q].c;
-                        norts[nums].b = 0;
-
-                        nums++;
-                    }
-                    else
-                    {
-                        snort.a = hull[q].c;
-                        snort.b = 0;
-                        norts.push_back(snort);
-                        nums++;
-                        numS = (int)norts.size();
+                    if num_small_s < num_cap_s {
+                        norts[num_small_s] = Snork::new(q, hull[q as usize].c, 0);
+                        num_small_s += 1;
+                    } else {
+                        norts.push(Snork::new(q, hull[q as usize].c, 0));
+                        num_small_s += 1;
+                        num_cap_s = norts.len();
                     }
 
-                    hull[q].keep = 1;
+                    hull[q as usize].keep = 1;
                 }
             }
+            assert_eq!(num_small_s, norts.len()); // If assert fails then maybe take only num_small_s first elems of norts. see 2 lines below.
+            norts.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            // sort(norts.begin(), norts.begin() + num_small_s);
 
-            sort(norts.begin(), norts.begin() + nums);
-            //            int nums = (int) norts.size();
-
-            if (nums >= 2)
-            {
-                for (int s = 0; s < nums - 1; s++)
-                {
-                    if (norts[s].a == norts[s + 1].a)
-                    {
+            if num_small_s >= 2 {
+                for s in 0..(num_small_s - 1) {
+                    if norts[s].a == norts[s + 1].a {
                         // link triangle sides.
-                        if (norts[s].b == 1)
-                        {
-                            hull[norts[s].id].ab = norts[s + 1].id;
-                        }
-                        else
-                        {
-                            hull[norts[s].id].ac = norts[s + 1].id;
+                        if norts[s].b == 1 {
+                            hull[norts[s].id as usize].ab = norts[s + 1].id;
+                        } else {
+                            hull[norts[s].id as usize].ac = norts[s + 1].id;
                         }
 
-                        if (norts[s + 1].b == 1)
-                        {
-                            hull[norts[s + 1].id].ab = norts[s].id;
-                        }
-                        else
-                        {
-                            hull[norts[s + 1].id].ac = norts[s].id;
+                        if norts[s + 1].b == 1 {
+                            hull[norts[s + 1].id as usize].ab = norts[s].id;
+                        } else {
+                            hull[norts[s + 1].id as usize].ac = norts[s].id;
                         }
                     }
                 }
             }
         }
-
-        /*else{
-	  cerr << "still in the coplanar state you fucking baboon..." << endl;
-	  // rather complicated and need to add points to the 2D-hull as two faced triangles.
-	  exit(0);
-	  }*/
-
-        //cerr << d_idx << " "  ;
     }
 
-    cerr << "max triangles used " << hull.size() << endl;
+    println!("max triangles used {}", hull.len());
 
-    return (0);
+    Ok(hull)
 }
-
 
 // // from NewtonApple_hull3D.cpp
 
@@ -999,6 +895,6 @@ fn init_hull3D_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str>
 // int NewtonApple_hull_3D(std::vector<R3> &pts, std::vector<Tri> &hull);
 
 // int init_hull3D(std::vector<R3> &pts, std::vector<Tri> &hull);
-// int init_hull3D_compact(std::vector<R3> &pts, std::vector<Tri> &hull);
+// int init_hull3d_compact(std::vector<R3> &pts, std::vector<Tri> &hull);
 
 // #endif

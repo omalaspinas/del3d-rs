@@ -179,8 +179,8 @@ pub fn cross_test(
     let x = points[id];
 
     let ab = b - a;
-    let ac = b - a;
-    let ax = b - a;
+    let ac = c - a;
+    let ax = x - a;
 
     let e = ab.cross(ax);
     let k = ab.cross(ac);
