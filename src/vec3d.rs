@@ -1,11 +1,11 @@
 use std::cmp::Ordering;
-use std::ops::{Add, Mul, Neg, Sub};
+use std::ops::{Add, AddAssign, Mul, Div, Neg, Sub};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vec3d {
     x: f64,
     y: f64,
-    z: f64,
+    pub z: f64,
 }
 
 impl Vec3d {
@@ -35,6 +35,14 @@ impl Vec3d {
             self.z * rhs.x - self.x * rhs.z,
             self.x * rhs.y - self.y * rhs.x,
         )
+    }
+}
+
+impl AddAssign for Vec3d {
+    fn add_assign(&mut self, other: Self) {
+        self.x += other.x;
+        self.y += other.y;
+        self.z += other.z;
     }
 }
 
@@ -70,6 +78,18 @@ impl Mul<f64> for Vec3d {
             x: self.x * other,
             y: self.y * other,
             z: self.z * other,
+        }
+    }
+}
+
+impl Div<f64> for Vec3d {
+    type Output = Self;
+
+    fn div(self, other: f64) -> Self::Output {
+        Self {
+            x: self.x / other,
+            y: self.y / other,
+            z: self.z / other,
         }
     }
 }
