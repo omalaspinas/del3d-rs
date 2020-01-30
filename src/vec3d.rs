@@ -3,8 +3,8 @@ use std::ops::{Add, AddAssign, Mul, Div, Neg, Sub};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vec3d {
-    x: f64,
-    y: f64,
+    pub x: f64,
+    pub y: f64,
     pub z: f64,
 }
 

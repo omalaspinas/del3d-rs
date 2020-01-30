@@ -90,6 +90,17 @@ pub struct Tri {
     e: Vec3d,
 }
 
+impl Tri {
+    fn is_valid(&self) -> bool {
+        self.a >= 0 &&
+        self.b >= 0 &&
+        self.c >= 0 &&
+        self.ab >= 0 &&
+        self.ac >= 0 &&
+        self.bc >= 0
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct R3 {
     v: Vec3d,
@@ -487,6 +498,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
         .set_ac(1)
         .set_bc(1)
         .finalize();
+    assert!(t1.is_valid());
     hull.push(t1);
 
     let t1 = TriBuilder::new(0, 1, 2)
@@ -496,7 +508,12 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
         .set_ac(0)
         .set_bc(0)
         .finalize();
+    assert!(t1.is_valid());
     hull.push(t1);
+
+    println!("hull =============================");
+    println!("{:?}", hull);
+    println!("==================================");
 
     for p in 3..nump {
         println!("point id = {}", p);
@@ -554,19 +571,19 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
             add_coplanar(pts, &mut hull, p as isize);
         }
         if hvis >= 0 {
-            println!("==================== NOT ENTERING COPLANAR ==================== ");
+            // println!("==================== NOT ENTERING COPLANAR ==================== ");
 
             l_idx = -1;
 
             // new triangular facets are formed from neighbouring invisible planes.
             let mut numx = xlist.len();
-            println!("xlist = {:?}", xlist);
-            println!("hull.len() = {}, hull = {:?}", hull.len(), hull);
+            // println!("xlist = {:?}", xlist);
+            // println!("hull.len() = {}, hull = {:?}", hull.len(), hull);
 
             for x in 0..numx {
                 let xid = xlist[x];
                 let ab = hull[xid as usize].ab; // facet adjacent to line ab
-                println!("xid = {}, ab = {}, x = {}", xid, ab, x);
+                // println!("xid = {}, ab = {}, x = {}", xid, ab, x);
                 let tab = hull[ab as usize].clone();
 
                 let p_tmp = pts[tab.a as usize]; // point on next triangle
@@ -642,6 +659,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
 
                     if new_flag > 0 {
                         hull.push(tri_new.finalize());
+                        // println!("tri_new = {:?}", hull.last());
                     } else {
                         hull[h_idx as usize] = tri_new.finalize();
                     }
@@ -723,6 +741,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
 
                     if new_flag > 0 {
                         hull.push(tri_new.finalize());
+                        // println!("tri_new = {:?}", hull.last());
                     } else {
                         hull[h_idx as usize] = tri_new.finalize();
                     }
@@ -805,6 +824,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
 
                     if new_flag > 0 {
                         hull.push(tri_new.finalize());
+                        // println!("tri_new = {:?}", hull.last());
                     } else {
                         hull[h_idx as usize] = tri_new.finalize();
                     } // hull.push_back(tri_new);
@@ -858,6 +878,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
             left.sort_by(|a, b| a.partial_cmp(b).unwrap());
             // sort(norts.begin(), norts.begin() + num_small_s);
 
+            // println!("norts len = {}, num_small_s = {}.", norts.len(), num_small_s);
             if num_small_s >= 2 {
                 for s in 0..(num_small_s - 1) {
                     if norts[s].a == norts[s + 1].a {
@@ -877,7 +898,16 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
                 }
             }
         }
+        if hull.iter().any(|t| !t.is_valid()) {
+            // println!("==================== INVALID HULL = {:?}", hull);
+        }
+        println!("hull =============================");
+        for h in hull.iter() {
+            println!("{:?}", h);
+        }
+        println!("==================================");
     }
+
 
     println!("max triangles used {}", hull.len());
 

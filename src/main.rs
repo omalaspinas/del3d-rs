@@ -96,17 +96,31 @@ use rand::prelude::*;
 
 fn main() {
     let num_points = 10;
-    let mut rng = rand::thread_rng();
-    let points = (0..num_points)
-        .into_iter()
-        .map(|_| {
-            let x = rng.gen();
-            let y = rng.gen();
-            let z = x * x + y * y;
+    let ary = [ -17.9199, 5.34844, -24.185,
+                      -17.166, -4.95278, -18.5105,
+                      14.922, 20.5824, -15.1224,
+                      -19.5596, 24.9462, -14.0872,
+                      -8.23886, 13.4115, -11.1113,
+                      2.6985, -1.13015, 6.44354,
+                      20.8098, 6.78559, 10.8648,
+                      17.0094, -5.28085, 14.155,
+                      -12.8557, -18.1384, 15.2088,
+                      -6.76078, 0.670046, 22.6115 ];
+    let mut points = Vec::new();
+    for i in 0..num_points {
+        points.push(Vec3d::new(ary[3*i], ary[3*i+1], ary[3*i+2]));
+    }
+    // let mut rng = rand::thread_rng();
+    // let points = (0..num_points)
+    //     .into_iter()
+    //     .map(|_| {
+    //         let x = rng.gen();
+    //         let y = rng.gen();
+    //         let z = x * x + y * y;
 
-            Vec3d::new(x, y, z)
-        })
-        .collect::<Vec<Vec3d>>();
+    //         Vec3d::new(x, y, z)
+    //     })
+    //     .collect::<Vec<Vec3d>>();
     let points = sort_and_deduplicate(points);
     let r3s = from_vec3d_to_r3(points);
 
