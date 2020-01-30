@@ -135,6 +135,7 @@ pub fn from_ref_r3_to_vec3d(points: &Vec<R3>) -> Vec<Vec3d> {
 }
 
 fn add_coplanar(pts: &Vec<R3>, hull: &mut Vec<Tri>, id: isize) {
+    println!("========== ENTERING COPLANAR! =============");
     let numh = hull.len();
     for k in 0..numh {
         //find vizible edges. from external edges.
@@ -553,14 +554,20 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
             add_coplanar(pts, &mut hull, p as isize);
         }
         if hvis >= 0 {
+            println!("==================== NOT ENTERING COPLANAR ==================== ");
+
             l_idx = -1;
 
             // new triangular facets are formed from neighbouring invisible planes.
             let mut numx = xlist.len();
+            println!("xlist = {:?}", xlist);
+            println!("hull.len() = {}, hull = {:?}", hull.len(), hull);
+
             for x in 0..numx {
                 let xid = xlist[x];
                 let ab = hull[xid as usize].ab; // facet adjacent to line ab
-                let mut tab = hull[ab as usize].clone();
+                println!("xid = {}, ab = {}, x = {}", xid, ab, x);
+                let tab = hull[ab as usize].clone();
 
                 let p_tmp = pts[tab.a as usize]; // point on next triangle
 
@@ -613,15 +620,15 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
                     let cap_a = hull[xid as usize].a;
                     let cap_b = hull[xid as usize].b;
                     if (tab.a == cap_a && tab.b == cap_b) || (tab.a == cap_b && tab.b == cap_a) {
-                        tab.ab = h_idx;
+                        hull[ab as usize].ab = h_idx;
                     } else if (tab.a == cap_a && tab.c == cap_b)
                         || (tab.a == cap_b && tab.c == cap_a)
                     {
-                        tab.ac = h_idx;
+                        hull[ab as usize].ac = h_idx;
                     } else if (tab.b == cap_a && tab.c == cap_b)
                         || (tab.b == cap_b && tab.c == cap_a)
                     {
-                        tab.bc = h_idx;
+                        hull[ab as usize].bc = h_idx;
                     } else {
                         return Err("Oh crap, the di-lithium crystals are fucked!");
                     }
@@ -643,7 +650,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
                 // second side of the struck out triangle
 
                 let ac = hull[xid as usize].ac; // facet adjacent to line ac
-                let mut tac = hull[ac as usize].clone();
+                let tac = hull[ac as usize].clone();
 
                 let p_tmp = pts[tac.a as usize]; // point on next triangle
 
@@ -694,15 +701,15 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
                     let cap_a = hull[xid as usize].a;
                     let cap_c = hull[xid as usize].c;
                     if (tac.a == cap_a && tac.b == cap_c) || (tac.a == cap_c && tac.b == cap_a) {
-                        tac.ab = h_idx;
+                        hull[ac as usize].ab = h_idx;
                     } else if (tac.a == cap_a && tac.c == cap_c)
                         || (tac.a == cap_c && tac.c == cap_a)
                     {
-                        tac.ac = h_idx;
+                        hull[ac as usize].ac = h_idx;
                     } else if (tac.b == cap_a && tac.c == cap_c)
                         || (tac.b == cap_c && tac.c == cap_a)
                     {
-                        tac.bc = h_idx;
+                        hull[ac as usize].bc = h_idx;
                     } else {
                         return Err("Oh crap, warp drive failure, dude!");
                     }
@@ -724,7 +731,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
                 // third side of the struck out triangle
 
                 let bc = hull[xid as usize].bc; // facet adjacent to line ac
-                let mut tbc = hull[bc as usize].clone();
+                let tbc = hull[bc as usize].clone();
 
                 let p_tmp = pts[tbc.a as usize]; // point on next triangle
 
@@ -760,7 +767,6 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
 
                     tri_new = tri_new.set_e(if dromadery > 0.0 { -e } else { e });
 
-
                     // try to reuse a Dead triangle.
                     let mut new_flag = 1;
                     let mut h_idx = hull.len() as isize;
@@ -777,15 +783,15 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
                     let cap_b = hull[xid as usize].b;
                     let cap_c = hull[xid as usize].c;
                     if (tbc.a == cap_b && tbc.b == cap_c) || (tbc.a == cap_c && tbc.b == cap_b) {
-                        tbc.ab = h_idx;
+                        hull[bc as usize].ab = h_idx;
                     } else if (tbc.a == cap_b && tbc.c == cap_c)
                         || (tbc.a == cap_c && tbc.c == cap_b)
                     {
-                        tbc.ac = h_idx;
+                        hull[bc as usize].ac = h_idx;
                     } else if (tbc.b == cap_b && tbc.c == cap_c)
                         || (tbc.b == cap_c && tbc.c == cap_b)
                     {
-                        tbc.bc = h_idx;
+                        hull[bc as usize].bc = h_idx;
                     } else {
                         return Err("Oh crap, rocket engine failure");
                     }
@@ -848,7 +854,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
                     hull[q as usize].keep = 1;
                 }
             }
-            let (left, right) = norts.split_at_mut(num_small_s);
+            let (left, _) = norts.split_at_mut(num_small_s);
             left.sort_by(|a, b| a.partial_cmp(b).unwrap());
             // sort(norts.begin(), norts.begin() + num_small_s);
 

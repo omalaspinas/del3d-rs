@@ -1,4 +1,4 @@
-use del3d_rs::{from_vec3d_to_r3, R3};
+use del3d_rs::{from_vec3d_to_r3};
 use del3d_rs::{sort_and_deduplicate, Vec3d};
 use rand::prelude::*;
 
