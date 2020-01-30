@@ -467,7 +467,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
     let p1 = pts[1];
     let p2 = pts[2];
 
-    let mut large_m = p0.v + p1.v + p1.v;
+    let mut large_m = p0.v + p1.v + p2.v;
 
     // check for colinearity
     let p01 = p1.v - p0.v;
@@ -498,6 +498,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
     hull.push(t1);
 
     for p in 3..nump {
+        println!("point id = {}", p);
         // add points until a non coplanar set of points is achieved.
         let pt = pts[p];
 
@@ -523,7 +524,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
                 if norm > 0.0 {
                     hvis = h;
                     hull[h as usize].keep = 0;
-                    xlist.push(h);
+                    xlist.push(hvis);
 
                     break;
                 }
@@ -594,11 +595,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
 
                     let dromadery = d.dot(e);
 
-                    tri_new = if dromadery > 0.0 {
-                        tri_new.set_e(-e)
-                    } else {
-                        tri_new.set_e(e)
-                    };
+                    tri_new = tri_new.set_e(if dromadery > 0.0 { -e } else { e });
 
                     // try to reuse a Dead triangle.
                     let mut new_flag = 1;
@@ -761,11 +758,8 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
 
                     let dromadery = d.dot(e);
 
-                    tri_new = if dromadery > 0.0 {
-                        tri_new.set_e(-e)
-                    } else {
-                        tri_new.set_e(e)
-                    };
+                    tri_new = tri_new.set_e(if dromadery > 0.0 { -e } else { e });
+
 
                     // try to reuse a Dead triangle.
                     let mut new_flag = 1;
@@ -777,7 +771,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
                         new_flag = -1;
                     }
 
-                    tri_new.id = h_idx;
+                    tri_new = tri_new.set_id(h_idx);
 
                     // update the touching triangle tbc
                     let cap_b = hull[xid as usize].b;
@@ -854,8 +848,8 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
                     hull[q as usize].keep = 1;
                 }
             }
-            assert_eq!(num_small_s, norts.len()); // If assert fails then maybe take only num_small_s first elems of norts. see 2 lines below.
-            norts.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            let (left, right) = norts.split_at_mut(num_small_s);
+            left.sort_by(|a, b| a.partial_cmp(b).unwrap());
             // sort(norts.begin(), norts.begin() + num_small_s);
 
             if num_small_s >= 2 {

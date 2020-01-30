@@ -110,6 +110,9 @@ fn main() {
     let points = sort_and_deduplicate(points);
     let r3s = from_vec3d_to_r3(points);
 
+    println!("point = {:?}", r3s);
+
+
     let ts = del3d_rs::newton_apple_delauney(&r3s);
 
     println!("point = {:?}", ts);
