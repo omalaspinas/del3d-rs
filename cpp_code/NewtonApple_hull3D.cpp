@@ -1548,6 +1548,13 @@ int init_hull3D_compact(std::vector<R3> &pts, std::vector<Tri> &hull)
             }
         }
 
+        std::cout << "hull ============================= (BEFORE COPLANAR)" << std::endl;
+        for (int i = 0; i < hull.size(); ++i) {
+            std::cout << "id = " << hull[i].id << ", a = " << hull[i].a << ", b = " << hull[i].b << ", c = " << hull[i].c << ", ab = " << hull[i].ab << ", ac = " << hull[i].ac << ", bc = " << hull[i].bc;
+            std::cout << ", keep = " << hull[i].keep << ", er = " << hull[i].er << ", ec = " << hull[i].ec << ", ez = " << hull[i].ez << std::endl;
+        }
+        std::cout << "hull ============================= (BEFORE COPLANAR)" << std::endl;
+
         if (hvis < 0)
         {
             add_coplanar(pts, hull, p);
@@ -1559,8 +1566,10 @@ int init_hull3D_compact(std::vector<R3> &pts, std::vector<Tri> &hull)
             // new triangular facets are formed from neighbouring invisible planes.
             int numh = (int)hull.size();
             int numx = (int)xlist.size();
+            std::cout << "========== numx = " << numx << "============" << std::endl;
             for (int x = 0; x < numx; x++)
             {
+                std::cout << "========== xlist[x] = " << xlist[x] << "============" << std::endl;
                 int xid = xlist[x];
                 int ab = hull[xid].ab; // facet adjacent to line ab
                 Tri &tAB = hull[ab];

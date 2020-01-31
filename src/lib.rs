@@ -567,6 +567,12 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
             }
         }
 
+        println!("hull ============================= (BEFORE COPLANAR)");
+        for h in hull.iter() {
+            println!("{:?}", h);
+        }
+        println!("================================== (BEFORE COPLANAR)");
+
         if hvis < 0 {
             add_coplanar(pts, &mut hull, p as isize);
         }
@@ -577,10 +583,11 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
 
             // new triangular facets are formed from neighbouring invisible planes.
             let mut numx = xlist.len();
-            // println!("xlist = {:?}", xlist);
+            println!("=========== xlist============== = {}", xlist.len());
             // println!("hull.len() = {}, hull = {:?}", hull.len(), hull);
-
-            for x in 0..numx {
+            let mut x = 0;
+            while x < numx {
+                println!("=========== xlist[x]============== = {}", xlist[x]);
                 let xid = xlist[x];
                 let ab = hull[xid as usize].ab; // facet adjacent to line ab
                 // println!("xid = {}, ab = {}, x = {}", xid, ab, x);
@@ -829,6 +836,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
                         hull[h_idx as usize] = tri_new.finalize();
                     } // hull.push_back(tri_new);
                 }
+                x += 1;
             }
 
             let numx = xlist.len();
@@ -874,6 +882,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
                     hull[q as usize].keep = 1;
                 }
             }
+
             let (left, _) = norts.split_at_mut(num_small_s);
             left.sort_by(|a, b| a.partial_cmp(b).unwrap());
             // sort(norts.begin(), norts.begin() + num_small_s);
