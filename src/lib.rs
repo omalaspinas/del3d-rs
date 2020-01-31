@@ -511,12 +511,7 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
     assert!(t1.is_valid());
     hull.push(t1);
 
-    println!("hull =============================");
-    println!("{:?}", hull);
-    println!("==================================");
-
     for p in 3..nump {
-        println!("point id = {}", p);
         // add points until a non coplanar set of points is achieved.
         let pt = pts[p];
 
@@ -567,30 +562,18 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
             }
         }
 
-        println!("hull ============================= (BEFORE COPLANAR)");
-        for h in hull.iter() {
-            println!("{:?}", h);
-        }
-        println!("================================== (BEFORE COPLANAR)");
-
         if hvis < 0 {
             add_coplanar(pts, &mut hull, p as isize);
         }
         if hvis >= 0 {
-            // println!("==================== NOT ENTERING COPLANAR ==================== ");
-
             l_idx = -1;
 
             // new triangular facets are formed from neighbouring invisible planes.
             let mut numx = xlist.len();
-            println!("=========== xlist============== = {}", xlist.len());
-            // println!("hull.len() = {}, hull = {:?}", hull.len(), hull);
             let mut x = 0;
             while x < numx {
-                println!("=========== xlist[x]============== = {}", xlist[x]);
                 let xid = xlist[x];
                 let ab = hull[xid as usize].ab; // facet adjacent to line ab
-                // println!("xid = {}, ab = {}, x = {}", xid, ab, x);
                 let tab = hull[ab as usize].clone();
 
                 let p_tmp = pts[tab.a as usize]; // point on next triangle
@@ -666,7 +649,6 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
 
                     if new_flag > 0 {
                         hull.push(tri_new.finalize());
-                        // println!("tri_new = {:?}", hull.last());
                     } else {
                         hull[h_idx as usize] = tri_new.finalize();
                     }
@@ -748,7 +730,6 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
 
                     if new_flag > 0 {
                         hull.push(tri_new.finalize());
-                        // println!("tri_new = {:?}", hull.last());
                     } else {
                         hull[h_idx as usize] = tri_new.finalize();
                     }
@@ -831,7 +812,6 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
 
                     if new_flag > 0 {
                         hull.push(tri_new.finalize());
-                        // println!("tri_new = {:?}", hull.last());
                     } else {
                         hull[h_idx as usize] = tri_new.finalize();
                     } // hull.push_back(tri_new);
@@ -887,7 +867,6 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
             left.sort_by(|a, b| a.partial_cmp(b).unwrap());
             // sort(norts.begin(), norts.begin() + num_small_s);
 
-            // println!("norts len = {}, num_small_s = {}.", norts.len(), num_small_s);
             if num_small_s >= 2 {
                 for s in 0..(num_small_s - 1) {
                     if norts[s].a == norts[s + 1].a {
@@ -907,14 +886,6 @@ fn init_hull3d_compact(pts: &Vec<R3>) -> Result<Vec<Tri>, &'static str> {
                 }
             }
         }
-        if hull.iter().any(|t| !t.is_valid()) {
-            // println!("==================== INVALID HULL = {:?}", hull);
-        }
-        println!("hull =============================");
-        for h in hull.iter() {
-            println!("{:?}", h);
-        }
-        println!("==================================");
     }
 
 
